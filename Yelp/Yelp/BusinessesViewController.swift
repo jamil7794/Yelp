@@ -8,18 +8,28 @@
 
 import UIKit
 
-class BusinessesViewController: UIViewController, UITableViewDelegate,UITableViewDataSource {
+class BusinessesViewController: UIViewController, UITableViewDelegate,UITableViewDataSource, UIScrollViewDelegate, UISearchBarDelegate {
+   
     
+    
+    var isMoreDataLoading = false
     var businesses: [Business]!
-    
+    var filteredData: [Business]!
+   
     @IBOutlet weak var tableView: UITableView!
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        tableView.delegate = self
+        
+        //tableView.delegate = self
         tableView.dataSource = self
         tableView.rowHeight = UITableViewAutomaticDimension
         tableView.estimatedRowHeight = 120
+
+        let searchBar = UISearchBar()
+        searchBar.sizeToFit()
+        navigationItem.titleView = searchBar
+        searchBar.delegate = self
         
         Business.searchWithTerm(term: "Thai", completion: { (businesses: [Business]?, error: Error?) -> Void in
             
@@ -31,9 +41,12 @@ class BusinessesViewController: UIViewController, UITableViewDelegate,UITableVie
                         print(business.address!)
                     }
                 }
-            
+            self.filteredData = businesses
+            self.tableView.reloadData()
             }
         )
+        
+        
         
         /* Example of Yelp search with more search options specified
          Business.searchWithTerm(term: "Restaurants", sort: .distance, categories: ["asianfusion", "burgers"]) { (businesses, error) in
@@ -44,12 +57,13 @@ class BusinessesViewController: UIViewController, UITableViewDelegate,UITableVie
                  }
          }
          */
+        //self.tableView.reloadData()
         
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if businesses != nil {
-            return businesses!.count
+        if filteredData != nil {
+            return filteredData!.count
         }else{
             return 0
         }
@@ -77,4 +91,30 @@ class BusinessesViewController: UIViewController, UITableViewDelegate,UITableVie
      }
      */
     
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if(!isMoreDataLoading){
+
+            let scrollViewContentHeight = tableView.contentSize.height
+            let scrollOffsetThreshold = scrollViewContentHeight - tableView.bounds.size.height
+
+            if(scrollView.contentOffset.y > scrollOffsetThreshold && tableView.isDragging){
+                isMoreDataLoading = true
+                fetch()
+            }
+        }
+    }
+    
+    func fetch(){
+        isMoreDataLoading = true
+        print("Begin FEtch")
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            
+        }
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        filteredData = searchText.isEmpty ? businesses : businesses.filter { ($0).name!.lowercased().contains(searchBar.text!.lowercased()) }
+        self.tableView.reloadData()
+    }
 }
